@@ -75,11 +75,18 @@ variable (r : Prop)
 
 example : (∃ x : α, r) → r := 
   (fun h : (∃ x : α, r) =>
+    match h with
+    | ⟨x, hr⟩ => hr
+  )
+
+/-example : (∃ x : α, r) → r := 
+  (fun h : (∃ x : α, r) =>
     Exists.elim h
       (fun x => 
         (fun hr : r => hr)
       )
-  )
+  )-/
+
 example (a : α) : r → (∃ x : α, r) := 
   (fun hr : r =>
     Exists.intro a hr
