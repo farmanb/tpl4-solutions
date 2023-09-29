@@ -1,387 +1,245 @@
 -- try it 
 variable (p q r : Prop)
 
-#check And.intro
-#check Iff.intro
-#check And.left
-
 -- commutativity of ∧ and ∨
 example : p ∧ q ↔ q ∧ p := by
-  apply Iff.intro
-  intro h
-  exact (And.intro (And.right h) (And.left h))
-  intro h
-  exact (And.intro (And.right h) (And.left h))
-
-#check Or.elim
-#check Or.intro_right  
+  apply Iff.intro <;> intro
+    | ⟨h₁,h₂⟩ => exact ⟨h₂,h₁⟩
 
 example : p ∨ q ↔ q ∨ p := by
-  apply Iff.intro
-  intro h
-  cases h
-  apply Or.intro_right
-  assumption
-  apply Or.intro_left
-  assumption
-
-  intro h
-  cases h
-  apply Or.intro_right
-  assumption
-  apply Or.intro_left
-  assumption
+  apply Iff.intro <;> intro
+    | Or.inl h => apply Or.inr h;
+    | Or.inr h => apply Or.inl h;
 
 -- associativity of ∧ and ∨
-example : (p ∧ q) ∧ r ↔ p ∧ (q ∧ r) := 
-  Iff.intro
-  (fun h : (p ∧ q) ∧ r => 
-    And.intro 
-      (And.left (And.left h))
-      (And.intro (And.right (And.left h)) (And.right h)))
-  (fun (h : p ∧ (q ∧ r)) => 
-    And.intro 
-      (And.intro (And.left h) (And.left (And.right h))) 
-      (And.right (And.right h)))
+example : (p ∧ q) ∧ r ↔ p ∧ (q ∧ r) := by
+  apply Iff.intro
+  . intro 
+    | ⟨h₁,h₂⟩ => exact And.intro h₁.left (And.intro h₁.right h₂)
+  . intro
+    | ⟨h₁,h₂⟩ => exact And.intro (And.intro h₁ h₂.left) h₂.right
 
-#check Or.elim
-
-example : (p ∨ q) ∨ r ↔ p ∨ (q ∨ r) := 
-  Iff.intro
-    (fun h : (p ∨ q) ∨ r =>
-      Or.elim h
-        (fun hpq : (p ∨ q) => 
-          Or.elim hpq
-            (fun hp : p => 
-              Or.intro_left (q ∨ r) hp)
-            (fun hq : q => 
-              Or.intro_right p (Or.intro_left r hq)
-            )
-        )
-        (fun hr : r => 
-          Or.intro_right p (Or.intro_right q hr)
-        )
-    )
-    (fun h : p ∨ (q ∨ r) => 
-      Or.elim h
-        (fun hp : p => 
-          Or.intro_left r (Or.intro_left q hp)
-        )
-        (fun hqr : q ∨ r => 
-          Or.elim hqr
-            (fun hq : q => 
-              Or.intro_left r (Or.intro_right p hq)
-            )
-            (fun hr : r => Or.intro_right (p ∨ q) hr)
-        )
-    )
+example : (p ∨ q) ∨ r ↔ p ∨ (q ∨ r) := by
+  apply Iff.intro
+  . intro
+    | Or.inl hpq => cases hpq with
+      | inl hp => exact Or.inl hp
+      | inr hq => exact Or.inr (Or.inl hq)
+    | Or.inr hr => exact Or.inr (Or.inr hr)
+  . intro
+    | Or.inl hp => exact Or.inl (Or.inl hp)
+    | Or.inr hqr => cases hqr with
+      | inl hq => exact Or.inl (Or.inr hq)
+      | inr hr => exact Or.inr hr
+    
 -- distributivity
-example : p ∧ (q ∨ r) ↔ (p ∧ q) ∨ (p ∧ r) := 
-  Iff.intro
-    (fun h : p ∧ (q ∨ r) => 
-      have hp : p := (And.left h)
-      Or.elim (And.right h)
-        (fun hq : q => 
-          Or.intro_left (p ∧ r) (And.intro hp hq)
-        )
-        (fun hr : r => 
-          Or.intro_right (p ∧ q) (And.intro hp hr)
-        )
-    )
-    (fun h : (p ∧ q) ∨ (p ∧ r) => 
-      Or.elim h
-        (fun hpq : p ∧ q => And.intro 
-          (And.left hpq)
-          (Or.intro_left r (And.right hpq))
-        )
-        (fun hpr : p ∧ r => And.intro
-          (And.left hpr)
-          (Or.intro_right q (And.right hpr))
-        )
-    )
+example : p ∧ (q ∨ r) ↔ (p ∧ q) ∨ (p ∧ r) := by
+  apply Iff.intro
+  . intro
+    | ⟨hp, hqr⟩ => cases hqr with
+      | inl hq => exact Or.inl (And.intro hp hq)
+      | inr hr => exact Or.inr (And.intro hp hr)
+  . intro
+    | Or.inl hpq => exact And.intro hpq.left (Or.inl hpq.right);
+    | Or.inr hpr => exact And.intro hpr.left (Or.inr hpr.right);
 
-example : p ∨ (q ∧ r) ↔ (p ∨ q) ∧ (p ∨ r) := 
-  Iff.intro
-  (fun h : p ∨ (q ∧ r) => 
-    Or.elim h
-      (fun hp : p => 
-        And.intro
-          (Or.intro_left q hp)
-          (Or.intro_left r hp)
-      )
-      (fun hqr : q ∧ r => 
-        And.intro
-          (Or.intro_right p (And.left hqr))
-          (Or.intro_right p (And.right hqr))
-      )
-  )
-  (fun h : (p ∨ q) ∧ (p ∨ r) => 
-    Or.elim (And.left h)
-      (fun hp : p => Or.intro_left (q ∧ r) hp)
-      (fun hq : q => 
-        Or.elim (And.right h)
-          (fun hp : p => Or.intro_left (q ∧ r) hp)
-          (fun hr : r => Or.intro_right p (And.intro hq hr))
-      )
-  )
+example : p ∨ (q ∧ r) ↔ (p ∨ q) ∧ (p ∨ r) := by
+  apply Iff.intro
+  intro h;
+  cases h with
+  | inl hp => apply And.intro <;> exact Or.inl hp;
+  | inr hqr => apply And.intro <;> apply Or.inr; exact hqr.left ; exact hqr.right
 
 -- other properties
-example : (p → (q → r)) ↔ (p ∧ q → r) := 
-  Iff.intro
-    (fun h : (p → (q → r)) => (fun hpq : p ∧ q => h (And.left hpq) (And.right hpq)))
-    (fun h : (p ∧ q → r ) => (fun hp : p => (fun hq : q => h (And.intro hp hq))))
+example : (p → (q → r)) ↔ (p ∧ q → r) := by
+  apply Iff.intro
+  . intro h₁ h₂
+    exact h₁ (h₂.left) h₂.right
+  . intro h₁ h₂ h₃ 
+    exact h₁ (And.intro h₂ h₃)
 
-example : ((p ∨ q) → r) ↔ (p → r) ∧ (q → r) := 
-  Iff.intro
-    (fun h : (p ∨ q) → r => And.intro
-      (fun hp : p => h (Or.intro_left q hp))
-      (fun hq : q => h (Or.intro_right p hq))
-    )
-    (fun h : (p → r) ∧ (q → r) => 
-      (fun hpq : p ∨ q => 
-        Or.elim hpq
-          (fun hp : p => (And.left h) hp)
-          (fun hq : q => (And.right h) hq)
-      )
-    )
+example : ((p ∨ q) → r) ↔ (p → r) ∧ (q → r) := by
+  apply Iff.intro
+  . intro h
+    apply And.intro
+    intro hp
+    exact h (Or.inl hp)
+    intro hq
+    exact h (Or.inr hq)
+  . intro
+    | ⟨hpr,hpq⟩ => intro 
+      | Or.inl hp => exact hpr hp
+      | Or.inr hp => exact hpq hp
 
-example : ¬(p ∨ q) ↔ ¬p ∧ ¬q := 
-  Iff.intro
-    (fun h : ¬(p ∨ q) => 
-      And.intro 
-        (fun hp : p => False.elim (h (Or.intro_left q hp))) 
-        (fun hq : q => False.elim (h (Or.intro_right p hq)))
-    )
-    (fun h : ¬p ∧ ¬ q => 
-      (fun hpq : p ∨ q => 
-        Or.elim hpq
-          (fun hp : p => False.elim ((And.left h) hp))
-          (fun hq : q => False.elim ((And.right h) hq))
-      )
-    )
-example : ¬p ∨ ¬q → ¬(p ∧ q) := 
-  (fun h : ¬p ∨ ¬q => 
-    (fun hpq : p ∧ q => Or.elim h
-      (fun hnp : ¬p => absurd (And.left hpq) hnp)
-      (fun hnq : ¬q => absurd (And.right hpq) hnq)
-    )
-  )
-example : ¬(p ∧ ¬p) := 
-  (fun h : p ∧ ¬p => absurd (And.left h) (And.right h))
+example : ¬(p ∨ q) ↔ ¬p ∧ ¬q := by
+  apply Iff.intro
+  . intro h
+    apply And.intro
+    intro hp
+    exact h (Or.inl hp)
+    intro hq
+    exact h (Or.inr hq)
+  . intro ⟨hnp,hnq⟩
+    intro
+    | Or.inl hp => exact hnp hp;
+    | Or.inr hq => exact hnq hq;
 
-example : p ∧ ¬q → ¬(p → q) := 
-  (fun h₁ : p ∧ ¬q =>
-    (fun h₂ : p → q =>
-      absurd (h₂ (And.left h₁)) (And.right h₁)
-    )
-  )
+example : ¬p ∨ ¬q → ¬(p ∧ q) := by
+  intro
+  | Or.inl hnp => intro ⟨hp,_⟩; exact hnp hp
+  | Or.inr hnq => intro ⟨_,hq⟩; exact hnq hq
+  
+example : ¬(p ∧ ¬p) := by
+  intro 
+  | ⟨hp,hnp⟩ => exact hnp hp
+  
 
-#check absurd
-example : ¬p → (p → q) := 
-  (fun hnp : ¬p =>
-    (fun hp : p =>
-      show q from absurd hp hnp
-    )
-  )
+example : p ∧ ¬q → ¬(p → q) := by
+  intro 
+  | ⟨hp, hnq⟩ => intro
+    | hpq => apply hnq; exact hpq hp
+  
 
-example : (¬p ∨ q) → (p → q) := 
-  (fun hnpq : ¬p ∨ q =>
-    (fun hp : p => 
-      Or.elim hnpq
-        (fun hnp : ¬p => show q from absurd hp hnp)
-        (fun hq : q => hq)
-    )
-  )
-example : p ∨ False ↔ p := 
-  Iff.intro
-    (fun h : p ∨ False => 
-      Or.elim h
-        (fun hp : p => hp)
-        (fun hf : False => False.elim hf)
-    )
-    (fun h : p =>
-      Or.intro_left False h
-    )
+example : ¬p → (p → q) := by
+  intro
+  | hnp => intro
+    | hp => exact False.elim (hnp hp)
+  
 
-example : p ∧ False ↔ False := 
-  Iff.intro
-    (fun h : p ∧ False =>
-      And.right h
-    )
-    (fun h : False => 
-      False.elim h
-    )
-example : (p → q) → (¬q → ¬p) := 
-  (fun hpq : p → q =>
-    (fun hnq : ¬ q =>
-      (fun hp : p =>
-        absurd (hpq hp) hnq
-      )
-    )
-  )
+example : (¬p ∨ q) → (p → q) := by
+  intro
+  | Or.inl hnp => intro
+    | hp => exact False.elim (hnp hp)
+  | Or.inr hq => intro
+    | _ => exact hq;
+
+example : p ∨ False ↔ p := by
+  apply Iff.intro
+  . intro
+    | Or.inl hp => exact hp
+    | Or.inr hf => exact False.elim (hf)
+  . intro
+    | hp => exact Or.inl hp
+
+example : p ∧ False ↔ False := by
+  apply Iff.intro
+  . intro
+    | ⟨_,hf⟩ => exact hf;
+  . intro
+    | hf => exact False.elim hf
+  
+example : (p → q) → (¬q → ¬p) := by
+  intro hpq hnp hp
+  exact hnp (hpq hp)
 
   open Classical
 
 variable (p q r : Prop)
 
-example : (p → q ∨ r) → ((p → q) ∨ (p → r)) := 
-  (fun h : p → q ∨ r =>
-    Or.elim (em p)
-      (fun hp : p => 
-        Or.elim (h hp)
-          (fun hq : q => Or.intro_left (p → r) (fun p => hq))
-          (fun hr : r => Or.intro_right (p → q) (fun p => hr))
-      )
-      (fun hnp : ¬p => 
-        Or.intro_left (p → r) (fun hp : p => absurd hp hnp)
-      )
-  )
+example : (p → q ∨ r) → ((p → q) ∨ (p → r)) := by
+  intro h
+  cases (Classical.em p) with 
+  | inl hp => cases h hp with
+    | inl hq => apply Or.inl; intro; exact hq
+    | inr hr => apply Or.inr; intro; exact hr
+  | inr hnp => apply Or.inl; intro hp; apply False.elim; apply hnp; exact hp
 
-example : ¬(p ∧ q) → ¬p ∨ ¬q := 
-  (fun h : ¬(p ∧ q) =>
-    (Or.elim (em p)
-      (fun hp : p => 
-        Or.elim (em q)
-          (fun hq : q => absurd (And.intro hp hq) h)
-          (fun hnq : ¬q => Or.intro_right (¬p) hnq)
-      )
-      (fun hnp : ¬p => Or.intro_left (¬ q) hnp)
-    )
-  )
+example : ¬(p ∧ q) → ¬p ∨ ¬q := by
+  intro h
+  cases (Classical.em p) with
+  | inl hp => apply Or.inr; intro hq; apply h; apply And.intro; exact hp; exact hq
+  | inr hnp => apply Or.inl; intro hp; apply hnp; exact hp
 
-example : ¬(p → q) → p ∧ ¬q := 
-  (fun h : ¬(p → q) =>
-    Or.elim (em p)
-      (fun hp : p => 
-        have hnq : ¬q :=
-          (fun hq : q => 
-            have hpq : p → q := (fun p => hq)
-            False.elim (h hpq)
-          )
-        And.intro
-          hp
-          hnq -- Proof of ¬q
-      ) 
-      (fun hnp : ¬p => 
-        have hpq : p → q :=
-          (fun hp : p => False.elim (hnp hp))
-        False.elim (h hpq)
-      )
-  )
+example : ¬(p → q) → p ∧ ¬q := by
+  intro h
+  cases (Classical.em p) with
+  | inl hp => apply And.intro; exact hp; intro hq; apply h; exact (fun hp => hq)
+  | inr hnp => apply And.intro; apply False.elim; apply h; intro hp; apply False.elim; apply hnp; exact hp; intro hq; apply h; exact (fun _ => hq)
 
-example : (p → q) → (¬p ∨ q) := 
-  (fun h : p → q =>
-    Or.elim (em p)
-      (fun hp : p => Or.intro_right (¬p) (h hp))
-      (fun hnp : ¬p => Or.intro_left q hnp)
-  )
+example : (p → q) → (¬p ∨ q) := by
+  intro h
+  cases (Classical.em p) with
+  | inl hp => apply Or.inr; exact h hp;
+  | inr hnp => apply Or.inl; exact hnp;
 
-example : (¬q → ¬p) → (p → q) := 
-  (fun h : ¬q → ¬p => 
-    Or.elim (em q)
-      (fun hq : q => (fun p => hq))
-      (fun hnq : ¬q => 
-        have hnp : ¬p := h hnq
-        (fun hp : p => show q from absurd hp hnp)
-      )
-  )
-example : p ∨ ¬p := 
-  Or.elim (em p)
-    (fun hp : p => Or.intro_left (¬p) hp)
-    (fun hnp : ¬p => Or.intro_right p hnp)
+example : (¬q → ¬p) → (p → q) := by
+  intro h hp;
+  cases (Classical.em q) with
+  | inl hq => exact hq;
+  | inr hnq => apply False.elim; exact h hnq hp;
 
-example : (((p → q) → p) → p) := 
-  (fun h : (p → q) → p => 
-    Or.elim (em p)
-      (fun hp : p => hp)
-      (fun hnp : ¬p => 
-        have hpq : p → q :=
-          (fun hp : p => show q from absurd hp hnp)
-        h hpq
-      )
-  )
+example : p ∨ ¬p := by
+  cases (Classical.em p) with
+  | inl hp => apply Or.inl; exact hp;
+  | inr hnp => apply Or.inr; exact hnp;
 
+example : (((p → q) → p) → p) := by
+  intro h
+  cases (Classical.em p) with
+  | inl hp => exact hp;
+  | inr hnp => apply h; intro hp; apply False.elim; apply hnp; exact hp;
 
-example : ¬(p ↔ ¬p) :=
-  (fun h : p ↔ ¬ p =>
-    /- Prove that ¬P is true-/
-    have hnp : ¬p := (fun hp : p => absurd hp (h.mp hp))
+example : ¬(p ↔ ¬p) := by
+  intro h
+  have hnp : ¬p := (fun hp : p => absurd hp (h.mp hp))
+  apply hnp;
+  exact h.mpr hnp;
 
-    /- Use this to prove P is true-/
-    have hp : p := h.mpr hnp
+variable (α : Type) (p q : α → Prop)
 
-    /- Now we have arrived at a contradiction. -/
-    False.elim (hnp hp)
-  )
+example : (∀ x, p x ∧ q x) ↔ (∀ x, p x) ∧ (∀ x, q x) := by
+  apply Iff.intro
+  . intro h
+    apply And.intro
+    intro x; exact (h x).left;
+    intro x; exact (h x).right;
+  . intro h
+    intro x
+    exact And.intro (h.left x) (h.right x)
 
-  variable (α : Type) (p q : α → Prop)
+example : (∀ x, p x → q x) → (∀ x, p x) → (∀ x, q x) := by
+  intro h₁ h₂ x
+  exact (h₁ x) (h₂ x) 
+  
+example : (∀ x, p x) ∨ (∀ x, q x) → ∀ x, p x ∨ q x := by
+  intro h x
+  cases h with
+  | inl hupx => apply Or.inl (hupx x)
+  | inr huqx => apply Or.inr (huqx x)
 
-example : (∀ x, p x ∧ q x) ↔ (∀ x, p x) ∧ (∀ x, q x) := 
-  Iff.intro
-    (fun h : (∀ x, p x ∧ q x) => 
-      And.intro
-      (fun x => show p x from (h x).left)
-      (fun x => show q x from (h x).right)
-    )
-    (fun h : (∀ x, p x) ∧ (∀ x, q x) => 
-      (fun x => And.intro (h.left x) (h.right x))
-    )
-
-example : (∀ x, p x → q x) → (∀ x, p x) → (∀ x, q x) := 
-  (fun h : ∀ x, p x → q x =>
-    (fun h' : ∀ x, p x =>
-      (fun x => h x (h' x))
-    )
-  )
-example : (∀ x, p x) ∨ (∀ x, q x) → ∀ x, p x ∨ q x := 
-  (fun h : (∀ x, p x) ∨ (∀ x, q x) =>
-    (fun x => 
-      Or.elim h
-        (fun hp : (∀ x, p x) => Or.intro_left (q x) (hp x))
-        (fun hq : (∀ x, q x) => Or.intro_right (p x) (hq x)))
-  )
-
--- try it 
 variable (α : Type) (p q : α → Prop)
 variable (r : Prop)
 
-example : α → ((∀ x : α, r) ↔ r) := 
-  (fun x : α => 
-    Iff.intro
-      (fun h : (∀ x : α, r) => h x)
-      (fun h : r => (fun α => h))
-  )
-example : (∀ x, p x ∨ r) ↔ (∀ x, p x) ∨ r := 
-  Iff.intro
-    (fun h : (∀ x, p x ∨ r) => 
-      Or.elim (Classical.em (r))
-        (fun hr : r => Or.intro_right (∀ x, p x) hr)
-        (fun hnr : ¬r => 
-          Or.intro_left 
-            r 
-            (fun x => 
-              Or.elim (h x)
-                (fun hpx : p x => hpx)
-                (fun hr : r => absurd hr hnr) -- Case can't happen: can't have r and ¬r.
-            )
-        )
-    )
-    (fun h : (∀ x, p x) ∨ r => 
-      (fun x => Or.elim h
-        (fun hl : (∀ x, p x) => Or.intro_left r (hl x))
-        (fun hr : r => Or.intro_right (p x) hr)
-      )
-    )
+example : α → ((∀ x : α, r) ↔ r) := by
+  intro x
+  apply Iff.intro
+  . intro h
+    exact (h x)
+  . intro h _
+    exact h
+  
+example : (∀ x, p x ∨ r) ↔ (∀ x, p x) ∨ r := by
+  apply Iff.intro
+  . intro h
+    cases (Classical.em r) with
+    | inl hr => apply Or.inr; exact hr;
+    | inr hnr => apply Or.inl; intro x; cases (h x) with
+      | inl hp => exact hp;
+      | inr hr => apply False.elim; apply hnr; exact hr
+  . intro h
+    intro x
+    cases h with
+    | inl hupx => apply Or.inl; exact (hupx x)
+    | inr hr => apply Or.inr; exact hr
 
-example : (∀ x, r → p x) ↔ (r → ∀ x, p x) := 
-  Iff.intro
-  (fun h : (∀ x, r → p x) => 
-    (fun hr : r =>
-      (fun x => (h x) hr))
-  )
-  (fun h : r → (∀ x, p x) => 
-    (fun x => (fun hr : r => (h hr) x))
-  )
+example : (∀ x, r → p x) ↔ (r → ∀ x, p x) := by
+  apply Iff.intro
+  . intro h₁ h₂ x
+    exact ((h₁ x) h₂);
+  . intro h₁ x h₂
+    apply h₁
+    exact h₂
+
 
 open Classical
 
@@ -398,264 +256,132 @@ example (a : α) : r → (∃ x : α, r) := by
 
 example : (∃ x, p x ∧ r) ↔ (∃ x, p x) ∧ r := by
   apply Iff.intro
-  intro h
-  cases h with
-  | intro x hpxr => apply And.intro; exact ⟨x,hpxr.left⟩; exact hpxr.right
+  . intro h
+    cases h with
+    | intro x hpxr => apply And.intro; exact ⟨x,hpxr.left⟩; exact hpxr.right
+  . intro h
+    cases h with
+    |intro hepx hr => cases hepx with
+    | intro x hpx => exact ⟨x, And.intro hpx hr⟩
 
-  intro h
-  cases h with
-  |intro hepx hr => cases hepx with
-  | intro x hpx => exact ⟨x, And.intro hpx hr⟩
- 
+example : (∃ x, p x ∨ q x) ↔ (∃ x, p x) ∨ (∃ x, q x) := by
+  apply Iff.intro
+  . intro
+    | ⟨x, Or.inl h⟩ => apply Or.inl; exact ⟨x,h⟩
+    | ⟨x, Or.inr h⟩ => apply Or.inr; exact ⟨x,h⟩  
+  . intro
+    | Or.inl ⟨x,h⟩ => exact ⟨x, Or.inl h⟩
+    | Or.inr ⟨x,h⟩=> exact ⟨x, Or.inr h⟩ 
 
-example : (∃ x, p x ∨ q x) ↔ (∃ x, p x) ∨ (∃ x, q x) := 
-  Iff.intro
-    (fun h : (∃ x, p x ∨ q x) => 
-      Exists.elim h
-      (fun x =>
-        (fun hx : p x ∨ q x =>
-          Or.elim hx
-          (fun hpx : p x => 
-            Or.intro_left (∃ x, q x) (Exists.intro x hpx)
-          )
-          (fun hqx : q x => 
-            Or.intro_right (∃ x, p x) (Exists.intro x hqx)
-          )
-        )
-      )
-    )
-    (fun h : (∃ x, p x) ∨ (∃ x, q x) => 
-      Or.elim h
-        (fun h₁ : (∃ x, p x) => 
-          Exists.elim h₁
-            (fun x => 
-              (fun hpx : p x => Exists.intro x (Or.intro_left (q x) hpx))
-            )
-          )
-        (fun h₂ : (∃ x, q x) => 
-          Exists.elim h₂
-            (fun x =>
-              (fun hqx : q x => Exists.intro x (Or.intro_right (p x) hqx))
-            )
-        )
-    )
-
-example : (∀ x, p x) ↔ ¬ (∃ x, ¬ p x) := 
-  Iff.intro
-    (fun h : (∀ x, p x) => 
-      (fun h₂ : ∃ x, ¬ p x => 
-        Exists.elim h₂
-        (fun x => 
-          (fun hnpx : ¬p x => 
-            absurd (h x) hnpx
-          )
-        )
-      )
-    )
-    (fun h : ¬ (∃ x, ¬p x) => 
-      (fun x => 
-        Or.elim (Classical.em (p x))
-          (fun hp : p x => hp)
-          (fun hnp : ¬p x => 
-            False.elim (h (Exists.intro x hnp))
-          )
-      )
-    )
-
-example : (∃ x, p x) ↔ ¬ (∀ x, ¬ p x) := 
-  Iff.intro 
-    (fun h : (∃ x, p x) => 
-      (fun h' : (∀ x, ¬ p x) => 
-        Exists.elim h
-        (fun x =>
-          (fun hpx : p x =>
-            have hnpx : ¬ p x := h' x
-            absurd hpx hnpx
-          )
-        )
-      )
-    )
-    (fun h : ¬ (∀ x, ¬ p x) => 
-      Classical.byContradiction
-        (fun h₁ : ¬(∃ x, p x) =>
-          have h₂ : (∀ x, ¬ p x) := 
-            (fun x => 
-              Or.elim (Classical.em (p x))
-              (fun hp : p x => 
-                have hepx : (∃ x, p x) := Exists.intro x hp
-                absurd hepx h₁
-              )
-              (fun hnp : ¬p x => hnp)
-            )
-          False.elim (h h₂)
-        )
-    )
-
-example : (¬ ∃ x, p x) ↔ (∀ x, ¬ p x) := 
-  Iff.intro
-    (fun h : (¬ ∃ x, p x) => 
-      (fun x =>
-        (fun hpx : p x => -- Prove ∀ x, (p x → False), which is definitionally ∀ x, ¬p x.
-          have hepx : ∃ x, p x := Exists.intro x hpx
-          False.elim (h hepx)
-        )
-      )
-    )
-    (fun h : (∀ x, ¬ p x) => -- To prove ¬ (∃ x, p x), prove (∃ x, p x) -> False.
-      (fun hex : ∃ x, p x =>
-        Exists.elim hex
-        (fun x => 
-          (fun hpx : p x =>
-            False.elim ((h x) hpx)
-          )
-        )
-      )
-    )
-
-
-example : (¬ ∀ x, p x) ↔ (∃ x, ¬ p x) := 
-  Iff.intro
-    (fun h : (¬ ∀ x, p x) => 
-      Classical.byContradiction
-      (fun h₁ : ¬(∃ x, ¬ p x) =>
-        have h₂ : ∀ x, p x :=
-          (fun x =>
-            Or.elim (Classical.em (p x))
-            (fun hpx : p x => 
-              hpx
-            )
-            (fun hnpx : ¬p x => 
-              absurd (Exists.intro x hnpx) h₁
-            )
-          )
-        False.elim (h h₂)
-      )
-    )
-    (fun h : (∃ x, ¬ p x) =>
-      (fun h₁ : ∀ x, p x =>
-        Exists.elim h
-        (fun x => 
-          (fun hnpx : ¬ p x =>
-            have hpx : p x := h₁ x
-            absurd hpx hnpx
-          )
-        )
-      )
-    )
-
-example : (∀ x, p x → r) ↔ (∃ x, p x) → r := 
-  Iff.intro
-    (fun h : (∀ x, p x → r) => 
-      (fun h₁ : (∃ x, p x) => 
-        Exists.elim h₁
-        (fun x =>
-          (fun hpx : p x => (h x) hpx)
-        )
-      )
-    )
-    (fun h : (∃ x, p x) → r =>
-      (fun x =>
-        (fun hp : p x =>
-          h (Exists.intro x hp)
-        )
-      )
-    )
-
-example (a : α) : (∃ x, p x → r) ↔ (∀ x, p x) → r := 
-  Iff.intro
-    (fun h : (∃ x, p x → r) =>
-      (fun hpx : (∀ x, p x) => -- Assume ∀ x, p x
-        Exists.elim h -- Produce x that satisfies p x → r
-          (fun x =>
-            (fun hpxr : p x →r =>
-              hpxr (hpx x) -- Conclude r because p x.
-            )
-          )
-      )
-    )
-    (fun h : (∀ x, p x) → r => 
-      show (∃ x, p x → r) from
-      Classical.byCases
-      (fun hp : (∀ x, p x) => 
-        Exists.intro a (fun _ => (h hp))
-      )
-      (fun hnupx: ¬(∀ x, p x) => 
-        Classical.byContradiction
-        (fun hnepxr : ¬ (∃ x, p x →r ) =>
-          have hupx : (∀ x, p x) :=
-            (fun x =>
-              Classical.byContradiction
-              (fun hnpx : ¬ p x =>
-                have hepxr : ∃ x, p x →r := 
-                  Exists.intro x (fun hpx : p x => absurd hpx hnpx)
-                show False from hnepxr hepxr
-              )
-            )
-          show False from hnupx hupx
-        )
-      )
-    )
+example : (∀ x, p x) ↔ ¬ (∃ x, ¬ p x) := by
+  apply Iff.intro
+  . intro h
+    intro ⟨x, hnpx⟩
+    apply hnpx
+    exact h x
+  . intro h x
+    apply Classical.byContradiction
+    intro hnpx
+    apply h
+    exact ⟨x,hnpx⟩
     
-example (a : α) : (∃ x, r → p x) ↔ (r → ∃ x, p x) := 
-  Iff.intro
-    (fun h : (∃ x, r → p x) => 
-      (fun hr : r => 
-        Exists.elim h
-          (fun x => 
-            (fun hrpx : r → p x =>
-              Exists.intro x (hrpx hr)
-            )
-          )
-      )
-    )
-    (fun h : r → (∃ x, p x) => -- r → (∃ x, p x) ↔ ¬r ∨ (∃ x, p x) 
-      Or.elim (Classical.em r)
-        (fun hr : r => 
-          Exists.elim (h hr) -- Use r to produce x satisfying p x.
-            (fun x => 
-              (fun hpx : p x => 
-                Exists.intro x (fun h' : r => hpx) -- Cook up r → px.
-              )
-            )
-        )
-        (fun hnr : ¬r => Exists.intro a (fun hr : r => False.elim (hnr hr)))
-    )
+example : (∃ x, p x) ↔ ¬ (∀ x, ¬ p x) := by
+  apply Iff.intro
+  . intro ⟨x, hpx⟩
+    intro hunpx
+    apply hunpx x
+    exact hpx
+  . intro hnunpx
+    apply Classical.byContradiction
+    intro hnepx
+    apply hnunpx
+    intro x
+    intro hpx
+    apply hnepx
+    exact ⟨x,hpx⟩
+
+example : (¬ ∃ x, p x) ↔ (∀ x, ¬ p x) := by
+  apply Iff.intro
+  . intro hnepx
+    intro x hpx
+    apply hnepx
+    exact ⟨x,hpx⟩
+  . intro hunpx
+    intro ⟨x,hpx⟩
+    apply hunpx x
+    exact hpx
+
+
+example : (¬ ∀ x, p x) ↔ (∃ x, ¬ p x) := by
+  apply Iff.intro
+  . intro hnupx
+    apply Classical.byContradiction
+    intro hnenpx
+    apply hnupx
+    intro x
+    cases Classical.em (p x) with
+    | inl hp => exact hp
+    | inr hnp => apply False.elim; apply hnenpx; exact ⟨x,hnp⟩
+  . intro ⟨x, hnpx⟩
+    intro hupx
+    apply hnpx
+    exact hupx x
+
+example : (∀ x, p x → r) ↔ (∃ x, p x) → r := by
+  apply Iff.intro
+  . intro hupxr
+    intro ⟨x,hpx⟩ 
+    exact (hupxr x) hpx
+  . intro h
+    intro x hpx
+    exact h ⟨x, hpx⟩
+
+example (a : α) : (∃ x, p x → r) ↔ (∀ x, p x) → r := by
+  apply Iff.intro
+  . intro ⟨x,hpxr⟩
+    intro hupx
+    apply hpxr
+    exact hupx x
+  . intro h
+    cases Classical.em (∀ x, p x) with
+    | inl hupx => exact ⟨a, (fun hpa : p a => h hupx)⟩ 
+    | inr hnupx => apply Classical.byContradiction; intro hnepxr; apply hnupx; intro x; apply Classical.byContradiction; intro hnpx; apply hnepxr; exact ⟨x, (fun hpx : p x => absurd hpx hnpx)⟩
+
+
+example (a : α) : (∃ x, r → p x) ↔ (r → ∃ x, p x) := by
+  apply Iff.intro
+  . intro ⟨x,hrpx⟩
+    intro hr
+    exact ⟨x, (hrpx hr)⟩
+  . intro h
+    cases (Classical.em r) with 
+    | inl hr => cases (h hr) with
+      | intro x hpx => exists x; intro _; exact hpx
+    | inr hnr => exists a; intro hr; apply False.elim; apply hnr; exact hr
     
  
 -- try it 
 variable (men : Type) (barber : men)
 variable (shaves : men → men → Prop)
 
-example (h : ∀ x : men, shaves barber x ↔ ¬ shaves x x) : False := 
-  have h₁ : shaves barber barber ↔ ¬ shaves barber barber := h barber
-  have h₂ : ¬ shaves barber barber :=
-    (fun h₃ : shaves barber barber => 
-      have h₄ : ¬ shaves barber barber :=
-        h₁.mp h₃
-      show False from absurd h₃ h₄
-    )
-  have h₃ : shaves barber barber := h₁.mpr h₂
-  False.elim (h₂ h₃)
+example (h : ∀ x : men, shaves barber x ↔ ¬ shaves x x) : False := by
+  specialize h barber
+  apply h.mp;
+  apply h.mpr;
+  intro h';
+  apply h.mp;
+  exact h';
+  exact h';
+  apply h.mpr;
+  intro h'
+  apply h.mp;
+  exact h';
+  exact h';
 
--- try it 
-def divides (m n : Nat) : Prop := ∃ (k : Nat), n = k*m
 
-def even (n : Nat) : Prop := divides 2 n
+example (p q r : Prop) (hp : p)
+        : (p ∨ q ∨ r) ∧ (q ∨ p ∨ r) ∧ (q ∨ r ∨ p) := by
+        constructor; apply Or.inl; assumption; constructor <;> apply Or.inr; apply Or.inl; assumption; apply Or.inr; assumption
 
-def composite (n : Nat) : Prop := ∃ (k : Nat), 1 < k ∧ k < n ∧ divides k n
+        
 
-def prime (n : Nat) : Prop := ¬composite n
-
-def infinitely_many_primes : Prop := ∀ n : Nat, ∃ p : Nat, prime p ∧ n < p
-
-def Fermat_number (n : Nat) : Prop := ∃ k : Nat, n = 2^(2^k) + 1
-
-def Fermat_prime (n : Nat) : Prop := Fermat_number n ∧ prime n  
-
-def infinitely_many_Fermat_primes : Prop := ∀ n : Nat, ∃ p : Nat, Fermat_prime p ∧ n < p
-
-def goldbach_conjecture : Prop := ∀ n, n > 2 → ∃ p q, p + q = n ∧ prime p ∧ prime q
-
-def Goldbach's_weak_conjecture : Prop := ∀ n, even n ∧ n > 5 → ∃ p p' p'', p + p' + p'' = n ∧ prime p ∧ prime p' ∧ prime p''
-
-def Fermat's_last_theorem : Prop := ∀ n, n > 2 → ¬∃ a b c, a^n + b^n = c^n ∧ a > 0 ∧ b > 0 ∧ c > 0
